@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kos Pubgolf 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0F3049;
+    --navy-deep:#0A2338;
+    --cream:#FAF6ED;
+    --dome:#1E6F94;
+    --coral:#E2603F;
+    --gold:#D6A23C;
+    --olive:#5C6B3F;
+    --ink:#16232E;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Inter', sans-serif;
+    color:var(--ink);
+    background:var(--navy-deep);
+    overflow:hidden;
+  }
+  ::selection{background:var(--gold); color:var(--navy-deep);}
+
+  /* ---------- top progress map ---------- */
+  #progress-map{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; align-items:center;
+    height:64px;
+    padding:0 14px;
+    background:linear-gradient(180deg, rgba(10,35,56,0.98) 0%, rgba(10,35,56,0.9) 75%, transparent 100%);
+    overflow-x:auto; overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  #progress-map::-webkit-scrollbar{display:none;}
+  .map-track{ display:flex; align-items:center; position:relative; flex-shrink:0; height:100%; }
+  .map-track::before{
+    content:''; position:absolute; left:14px; right:14px; top:50%;
+    height:0; border-top:2px dashed rgba(250,246,237,0.25); transform:translateY(-1px); z-index:0;
+  }
+  .map-marker{
+    position:relative; z-index:1;
+    display:flex; align-items:center; justify-content:center;
+    width:34px; height:34px; margin:0 6px; flex-shrink:0;
+    border-radius:50%;
+    border:2px solid rgba(250,246,237,0.32);
+    background:var(--navy);
+    color:rgba(250,246,237,0.55);
+    font-family:'Space Mono', monospace; font-size:9.5px; font-weight:700;
+    cursor:pointer;
+    transition:all .25s ease;
+  }
+  .map-marker:hover{ border-color:var(--gold); color:var(--cream); }
+  .map-marker.active{
+    background:var(--gold); border-color:var(--gold); color:var(--navy-deep);
+    transform:scale(1.16); box-shadow:0 0 0 4px rgba(214,162,60,0.2);
+  }
+  .map-marker.locked{ opacity:.32; cursor:not-allowed; }
+  .map-marker.locked:hover{ border-color:rgba(250,246,237,0.32); color:rgba(250,246,237,0.55); }
+  .map-marker.start{ border-radius:8px; font-size:8.5px; }
+
+  /* ---------- slides ---------- */
+  #viewport{ position:fixed; top:0; left:0; right:0; bottom:0; overflow:hidden; }
+  #slides{
+    display:flex; height:100%;
+    transition:transform .5s cubic-bezier(.65,0,.35,1);
+  }
+  .page{
+    flex:0 0 100vw; width:100vw; height:100%;
+    overflow-y:auto;
+    position:relative;
+    padding:118px 8vw 132px;
+  }
+  .page.cover{ background:radial-gradient(ellipse at 30% 20%, #123a56 0%, var(--navy-deep) 65%); }
+  .page[data-type="drink"]{ background:linear-gradient(160deg, var(--dome) 0%, #164f68 100%); }
+  .page[data-type="challenge"]{ background:linear-gradient(160deg, var(--coral) 0%, #a8442c 100%); }
+  .page[data-type="choice"]{ background:linear-gradient(160deg, var(--gold) 0%, #9c7325 100%); }
+  .page::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background-image:
+      radial-gradient(circle at 92% 8%, rgba(255,255,255,0.08), transparent 45%),
+      radial-gradient(circle at 6% 94%, rgba(0,0,0,0.18), transparent 40%);
+  }
+
+  .hole-inner, .cover-inner{ position:relative; z-index:2; max-width:640px; width:100%; margin:0 auto; color:var(--cream); text-align:left; }
+
+  /* ---------- cover ---------- */
+  .cover-eyebrow{
+    font-family:'Space Mono', monospace; font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--gold); display:block; margin-bottom:14px;
+  }
+  .cover-title{
+    font-family:'Fraunces', serif; font-weight:700; font-size:clamp(2.2rem, 7vw, 4rem);
+    line-height:1.05; margin-bottom:6px;
+  }
+  .cover-title em{ font-style:normal; font-weight:500; color:var(--gold); }
+  .cover-sub{ font-size:14.5px; color:rgba(250,246,237,0.7); margin-bottom:24px; }
+  .cover-intro{ font-size:15.5px; line-height:1.65; color:rgba(250,246,237,0.9); margin-bottom:26px; max-width:58ch; text-align:justify; text-align-last:left; hyphens:auto; }
+  .cover-block{ margin-bottom:22px; }
+  .cover-block h3{
+    font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--gold); margin-bottom:10px;
+  }
+  .cover-block > p{ font-size:14px; line-height:1.6; color:rgba(250,246,237,0.85); max-width:58ch; margin-bottom:10px; text-align:justify; text-align-last:left; hyphens:auto; }
+  .rules-list{ list-style:none; display:flex; flex-direction:column; gap:10px; }
+  .rules-list li{ font-size:14.5px; line-height:1.6; color:rgba(250,246,237,0.85); text-align:justify; text-align-last:left; hyphens:auto; }
+  .teams-grid{ display:flex; gap:14px; flex-wrap:wrap; }
+  .team-card{
+    background:rgba(250,246,237,0.06); border:1px solid rgba(250,246,237,0.16);
+    border-radius:12px; padding:16px 18px; flex:1; min-width:180px;
+  }
+  .team-card h4{ font-family:'Fraunces', serif; font-weight:600; font-size:16px; margin-bottom:8px; }
+  .team-card p{ font-size:14px; color:rgba(250,246,237,0.75); line-height:1.5; }
+  .team-card .jokers{
+    display:inline-block; margin-top:8px; font-family:'Space Mono', monospace; font-size:11px;
+    letter-spacing:.06em; color:var(--gold); border:1px solid rgba(214,162,60,0.4); border-radius:999px; padding:3px 10px;
+  }
+  .start-btn{
+    margin-top:8px; display:inline-flex; align-items:center; gap:8px;
+    background:var(--gold); color:var(--navy-deep); border:none;
+    font-family:'Inter', sans-serif; font-weight:700; font-size:14px;
+    padding:12px 22px; border-radius:999px; cursor:pointer;
+  }
+  .start-btn:hover{ filter:brightness(1.07); }
+
+  /* ---------- hole head ---------- */
+  .hole-head{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .hole-num{
+    font-family:'Space Mono', monospace; font-weight:700; font-size:14px;
+    color:var(--navy-deep); background:var(--cream); border-radius:8px; padding:5px 11px;
+  }
+  .hole-badge{
+    font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    padding:5px 11px; border-radius:999px; border:1px solid rgba(250,246,237,0.5); color:var(--cream);
+  }
+  .hole-title{
+    font-family:'Fraunces', serif; font-weight:600; font-size:clamp(1.5rem, 4vw, 2.15rem);
+    line-height:1.15; margin-bottom:16px;
+  }
+  .hole-body p{ font-size:15px; line-height:1.7; color:rgba(250,246,237,0.94); margin-bottom:12px; max-width:60ch; text-align:justify; text-align-last:left; hyphens:auto; }
+  .hole-body strong{ color:var(--cream); }
+
+  /* info panel: "wie drinkt wat" */
+  .info-panel{
+    margin-top:18px; padding-top:14px; border-top:1px solid rgba(250,246,237,0.25);
+    display:flex; flex-direction:column; gap:9px;
+  }
+  .info-row{ display:flex; gap:14px; align-items:baseline; }
+  .info-row .k{
+    font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--gold); min-width:98px; flex-shrink:0;
+  }
+  .info-row .v{ font-size:14.5px; color:var(--cream); line-height:1.5; text-align:left; }
+
+  .choice-list{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .choice-item{
+    background:rgba(250,246,237,0.1); border:1px solid rgba(250,246,237,0.25);
+    border-radius:10px; padding:10px 14px; font-size:14.5px; color:var(--cream);
+  }
+
+  /* challenge questions */
+  .q-list{ list-style:none; counter-reset:q; display:flex; flex-direction:column; gap:8px; margin-top:14px; max-height:30vh; overflow-y:auto; padding-right:4px; }
+  .q-list::-webkit-scrollbar{ width:6px; }
+  .q-list::-webkit-scrollbar-thumb{ background:rgba(250,246,237,0.3); border-radius:3px; }
+  .q-item{ background:rgba(250,246,237,0.08); border:1px solid rgba(250,246,237,0.2); border-radius:10px; }
+  .q-item summary{ counter-increment:q; cursor:pointer; list-style:none; padding:10px 14px; font-size:13.5px; color:var(--cream); display:flex; gap:9px; align-items:baseline; text-align:left; }
+  .q-item summary::-webkit-details-marker{ display:none; }
+  .q-item summary::before{ content:counter(q) '.'; font-family:'Space Mono', monospace; color:var(--gold); font-weight:700; flex-shrink:0; }
+  .q-item summary::after{ content:'tonen'; margin-left:auto; font-family:'Space Mono', monospace; font-size:10px; color:rgba(250,246,237,0.55); white-space:nowrap; padding-left:10px; }
+  .q-item[open] summary::after{ content:'verbergen'; }
+  .q-answer{ padding:0 14px 11px 27px; font-family:'Space Mono', monospace; font-size:13px; color:var(--gold); text-align:left; }
+
+  .editable-note{ margin-top:16px; font-size:12px; color:rgba(250,246,237,0.55); font-style:italic; }
+
+  /* ---------- checkbox gate ---------- */
+  .gate-row{ display:flex; align-items:center; justify-content:center; gap:10px; padding:9px 10px; }
+  .gate-row.hidden{ display:none; }
+  .gate-check{
+    display:flex; align-items:center; gap:10px; cursor:pointer;
+    font-family:'Inter', sans-serif; font-size:13.5px; font-weight:600; color:var(--cream);
+    background:rgba(250,246,237,0.1); border:1px solid rgba(250,246,237,0.3);
+    padding:9px 16px; border-radius:999px; transition:all .2s ease; user-select:none;
+  }
+  .gate-check:hover{ background:rgba(250,246,237,0.18); }
+  .gate-check input{ display:none; }
+  .gate-box{
+    width:18px; height:18px; border-radius:5px; border:2px solid rgba(250,246,237,0.6);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .15s ease;
+  }
+  .gate-box svg{ width:12px; height:12px; opacity:0; transform:scale(.5); transition:all .15s ease; }
+  .gate-check input:checked + .gate-box{ background:var(--gold); border-color:var(--gold); }
+  .gate-check input:checked + .gate-box svg{ opacity:1; transform:scale(1); }
+
+  @keyframes shake{
+    0%,100%{ transform:translateX(0); }
+    20%{ transform:translateX(-6px); }
+    40%{ transform:translateX(6px); }
+    60%{ transform:translateX(-4px); }
+    80%{ transform:translateX(4px); }
+  }
+  .shake{ animation:shake .4s ease; }
+
+  /* ---------- bottom nav ---------- */
+  #pagenav{
+    position:fixed; bottom:0; left:0; right:0; z-index:50;
+    background:linear-gradient(0deg, rgba(10,35,56,0.94) 0%, rgba(10,35,56,0.75) 65%, transparent 100%);
+    padding-top:6px;
+  }
+  .nav-buttons{ display:flex; align-items:center; justify-content:space-between; padding:10px 20px 16px; }
+  .nav-btn{
+    display:flex; align-items:center; gap:8px;
+    background:rgba(250,246,237,0.12); border:1px solid rgba(250,246,237,0.3); color:var(--cream);
+    font-family:'Inter', sans-serif; font-weight:600; font-size:13.5px;
+    padding:10px 16px; border-radius:999px; cursor:pointer; transition:all .2s ease;
+  }
+  .nav-btn:hover:not(:disabled){ background:rgba(250,246,237,0.22); }
+  .nav-btn:disabled{ opacity:.28; cursor:not-allowed; }
+  #page-counter{ font-family:'Space Mono', monospace; font-size:11.5px; color:rgba(250,246,237,0.65); letter-spacing:.08em; }
+
+  @media (max-width:560px){
+    .page{ padding:112px 6vw 148px; }
+    .teams-grid{ flex-direction:column; }
+    .info-row{ flex-direction:column; gap:2px; }
+    .info-row .k{ min-width:0; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-map"><div class="map-track" id="map-track"></div></div>
+
+<div id="viewport">
+  <div id="slides">
+
+    <!-- COVER -->
+    <section class="page cover" id="page-0" data-label="Start">
+      <div class="cover-inner">
+        <span class="cover-eyebrow">Zaterdag 8 augustus · Kos</span>
+        <h1 class="cover-title">Kos Pubgolf <em>2026</em></h1>
+        <p class="cover-sub">13 holes · zo min mogelijk slagen wint</p>
+        <p class="cover-intro">Heren, welkom! Zaterdag 8 augustus, dat kan maar één ding betekenen: Pubgolf in Kos! Vandaag zal in het teken staan van drank, challenges, en het halen van zo min mogelijk slagen, om te bepalen wie zich de koning van de Kos pubgolf 2026 mag noemen.</p>
+
+        <div class="cover-block">
+          <h3>Spelregels</h3>
+          <ul class="rules-list">
+            <li>Het doel van pubgolf is om zo min mogelijk slagen te halen aan het einde van de rit. Een slag wordt gerekend als de mond van het glas is, of als medespelers het vermoeden hebben dat de speler rust probeert te pakken door zijn mond aan het glas te houden, maar geen slokken neemt. Wanneer iemand morst, wordt +1 slag bij het totaal aantal opgeteld.</li>
+            <li>Bij sommige holes zal er eerst een challenge uitgevoerd worden. De uitkomst hiervan kan een voordeel opleveren voor de winnaar, of een nadeel voor de verliezer.</li>
+          </ul>
+        </div>
+
+        <div class="cover-block">
+          <h3>Teams</h3>
+          <p>Om de teams in balans te houden, is de verdeling vooraf gemaakt:</p>
+          <div class="teams-grid">
+            <div class="team-card"><h4>Team 1</h4><p>Owen<br>Finn</p><span class="jokers">2 jokers</span></div>
+            <div class="team-card"><h4>Team 2</h4><p>Daniël<br>Klaas<br>Didi</p><span class="jokers">1 joker</span></div>
+          </div>
+        </div>
+
+        <div class="cover-block">
+          <h3>Jokers</h3>
+          <p>Beide teams kunnen een joker inzetten om een hole toe te wijden aan de quizmaster. De quizmaster neemt dan één drankje uit de hole over en drinkt zelf (alcoholvrij). Team 1 heeft er twee omdat ze met minder man zijn, Team 2 heeft er één. Beide teams kunnen niet bij dezelfde hole hun joker inzetten — er wordt steeds gedobbeld welk team als eerste mag beslissen.</p>
+        </div>
+
+        <button class="start-btn" id="start-btn">Begin de ronde →</button>
+      </div>
+    </section>
+
+    <!-- HOLE 1 -->
+    <section class="page" data-type="drink" id="page-1" data-label="1" data-check="Op! Klaar voor de volgende hole">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 1</span><span class="hole-badge">Drankje</span></div>
+        <h2 class="hole-title">La Strega — Fine Greek &amp; Italian Tavern</h2>
+        <div class="hole-body">
+          <p>Dit pubgolf avontuur zal beginnen bij La Strega, een bar/café op maar liefst 4 minuten lopen van Anastasia. Om lekker te beginnen, zal iedereen bij deze stop iets drinken. Maar wat? De quizmaster heeft op foto's uit 2025 drie verschillende bieren op de kaart zien staan: Athlos, Alfa en Mythos (allemaal 330 ml). Het is bij deze stop de bedoeling dat de teamleden niet hetzelfde biertje nemen. Team 1 hoeft uiteraard niet drie biertjes te nemen, maar ook hier geldt dat de teamleden niet dezelfde keuze mogen maken. Drink ze!</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">Ieder teamlid</span></div>
+          <div class="info-row"><span class="k">Drankje(s)</span><span class="v">Athlos, Alfa en Mythos (allemaal 330 ml)</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">15:45 – 00:00</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2.1 CHALLENGE 1 -->
+    <section class="page" data-type="challenge" id="page-2" data-label="2.1" data-check="Challenge afgerond">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 2.1</span><span class="hole-badge">Challenge</span></div>
+        <h2 class="hole-title">Challenge 1 — Fotorace</h2>
+        <div class="hole-body">
+          <p>Die gingen er vast lekker in! Voordat we de volgende hole gaan spelen en wat gaan eten, gaan we eerst een challenge uitvoeren. Het is tijd om Kos eens wat dieper te verkennen en dit op een interessante manier vast te leggen tijdens een foto race. Ieder team krijgt 20 minuten om twee foto's te maken. Wat er op die foto's moet staan is het volgende:</p>
+          <p>1. Een zo gek mogelijke foto. Dit kan van alles zijn, een gekke pose, een gek persoon op straat, een gekke winkel.<br>2. Een zo gek mogelijk product/item. Hier zitten wederom geen restricties aan.</p>
+          <p>Hoe je beide foto's insteekt is aan jullie. Na 20 minuten zullen de foto's aan de quizmaster getoond worden en zal de beste reeks worden uitgekozen. Het verliezende team zal bij de volgende hole twee drankjes moeten drinken, en heeft per definitie dus ook een slag meer. Winnen is daarom belangrijk. Succes!</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Tijd</span><span class="v">20 minuten, twee foto's per team</span></div>
+          <div class="info-row"><span class="k">Verliezer</span><span class="v">Drinkt 2 drankjes bij hole 2.2 (+1 slag)</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2.2 NISSI BEACH BAR -->
+    <section class="page" data-type="drink" id="page-3" data-label="2.2" data-check="Op! Klaar voor de volgende hole">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 2.2</span><span class="hole-badge">Drankje</span></div>
+        <h2 class="hole-title">Nissi Beach Bar</h2>
+        <div class="hole-body">
+          <p>Op naar de Nissi Beach Bar. Voordat we aan het eten kunnen beginnen, zal er eerst gedronken moeten worden. En denk je aan de Nissi Beach Bar, dan denk je natuurlijk aan een lekkere Heineken, heerlijk Nederlands. Deze zullen voor het eten besteld en opgedronken moeten worden. Zijn deze op? Dan kan er gegeten worden. Eet smakelijk!</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 of 2 personen per team (op basis van challenge 2.1)</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Heineken</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">09:00 – 20:00</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3.2 ALIBABA -->
+    <section class="page" data-type="drink" id="page-4" data-label="3.2" data-check="Op! Klaar voor de volgende hole">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 3.2</span><span class="hole-badge">Drankje</span></div>
+        <h2 class="hole-title">Alibaba Beach Bar</h2>
+        <div class="hole-body">
+          <p>Jullie weten natuurlijk ook wel, dat als je naar Kos gaat, het geen geslaagde vakantie is geweest als je niet wat bent gaan drinken bij Alibaba. Heel toevallig zit deze zaak recht naast de Nissi Beach Bar. Hier bestellen jullie een Milokleftis. Milokleftis is de populairste Griekse appelcider, heeft een alcoholpercentage van 4,5% en staat bekend om een knapperige appelsmaak. Dat moet wel lekker zijn, toch?</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 teamlid</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Milokleftis</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">09:00 – 20:00 (wellicht tot 19:00)</span></div>
+          <div class="info-row"><span class="k">Back-up</span><span class="v">Witte of rode wijn in een glas</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOLE 4 -->
+    <section class="page" data-type="drink" id="page-5" data-label="4" data-check="Op! Klaar voor de volgende hole">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 4</span><span class="hole-badge">Drankje</span></div>
+        <h2 class="hole-title">Old River Taverne</h2>
+        <div class="hole-body">
+          <p>Niet veel verderop zit Old River Taverne. Jullie zullen vast niet onbekend zijn met het nummer 'The Rusty Trombone', ondertussen een klassieker voor tijdens de trips in de auto. Het is daarom niet meer dan logisch om hier een iconisch drankje bij te drinken, de 'Rusty Nail'. Dit is een cocktail die bestaat uit whisky en drambuile (uitspraak: drem boewie) (een likeur op basis van Schotse whisky). Hopelijk smaakt deze net zo iconisch!</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 teamlid</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Rusty Nail</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">10:00 – 23:00</span></div>
+          <div class="info-row"><span class="k">Back-up</span><span class="v">Een andere cocktail op de kaart</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOLE 5 -->
+    <section class="page" data-type="drink" id="page-6" data-label="5" data-check="Op! Klaar voor de volgende hole">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 5</span><span class="hole-badge">Drankje</span></div>
+        <h2 class="hole-title">Sophie's Restaurant &amp; Beach</h2>
+        <div class="hole-body">
+          <p>Even een stukje lopen, naar Sophie's Restaurant &amp; Beach om precies te zijn. Jullie herinneren vast nog wel een knap staaltje acteerwerk in het huis van B. Drinkman. We bevonden ons in Willy's, waar Owen zijn favoriete pizza bestelde, een PIZZA MARGHERITA!!! Sophie heeft van deze acteerkunsten gehoord, en heeft speciaal voor ons de Margarita cocktail op de kaart gezet, al sinds 2022, zo is op foto's te zien. Deze is misschien nog wel lekkerder dan die van Willy's.</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 teamlid</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Margarita Cocktail</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">08:00 – 22:00</span></div>
+          <div class="info-row"><span class="k">Back-up 1</span><span class="v">Motherfucker</span></div>
+          <div class="info-row"><span class="k">Back-up 2</span><span class="v">Hulk</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6.1 CHALLENGE 2 -->
+    <section class="page" data-type="challenge" id="page-7" data-label="6.1" data-check="Challenge afgerond">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 6.1</span><span class="hole-badge">Challenge</span></div>
+        <h2 class="hole-title">Challenge 2 — Guess the number</h2>
+        <div class="hole-body">
+          <p>Guess the number. De quizmaster heeft een getal onder de 40 opgeschreven. Als dit nummer geraden wordt, zal het hele verliezende team bij de volgende hole een drankje moeten drinken.</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Getal</span><span class="v">Onder de 40</span></div>
+          <div class="info-row"><span class="k">Bij raden</span><span class="v">Verliezende team drinkt een extra drankje bij de volgende hole</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6.2 KOS'S KEUZE -->
+    <section class="page" data-type="choice" id="page-8" data-label="6.2" data-check="Keuze gemaakt">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 6.2</span><span class="hole-badge">Kos's Keuze</span></div>
+        <h2 class="hole-title">Kos's Keuze — Geor. Averof</h2>
+        <div class="hole-body">
+          <p>We zullen naar de andere kant van de stad lopen om daar de laatste barren en café's mee te pakken. Op de weg daar naartoe, lopen we langs de straat Geor. Averof. De quizmaster heeft gezien dat hier ook nog wat barren zitten. Het team dat op dit moment in slagen achterstaat, mag bepalen of én wat er hier gedronken gaat worden. Zij mogen zowel een bar als het drankje uitkiezen. Er mag ook besloten worden om al door te gaan naar het andere deel van de stad, dan wordt deze straat overgeslagen.</p>
+        </div>
+        <div class="choice-list">
+          <div class="choice-item">Strand Beach Club</div>
+          <div class="choice-item">Jacksons Beach Bar</div>
+          <div class="choice-item">Omega Sky Bar</div>
+          <div class="choice-item">— of overslaan —</div>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 teamlid of het hele team (op basis van challenge 2)</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Keuze</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOLE 7 -->
+    <section class="page" data-type="choice" id="page-9" data-label="7" data-check="Keuze gemaakt">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 7</span><span class="hole-badge">Kos's Keuze 2</span></div>
+        <h2 class="hole-title">Kos's Keuze 2</h2>
+        <div class="hole-body">
+          <p>Keuze gemaakt? Het is tijd om wat sightseeing te doen. Het is een stukje lopen naar wat barren die al eerder via de chats voorbij gekomen zijn. Langs het water van de haven en de welbekende 'I Love Kos', zullen we aankomen bij het gebied waar Saloon Tex en West Bar zich bevinden. Het is niet de bedoeling dat we hier blijven hangen, maar zo kan er al wel een sfeerimpressie gekregen worden. Het is nu aan alle golfers om te kiezen waar in dat gebied de zevende hole gespeeld zal worden en wat daar gedronken wordt. De quizmaster heeft wat opties uitgestippeld — let op, er zal er nu maar 1 gekozen worden, de rest is voor een andere dag.</p>
+        </div>
+        <div class="choice-list">
+          <div class="choice-item">West Bar</div>
+          <div class="choice-item">Saloon Tex</div>
+          <div class="choice-item">Sintrivani</div>
+          <div class="choice-item">Cafe Neratzia</div>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 teamlid</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Keuze</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8.1 CHALLENGE 3 -->
+    <section class="page" data-type="challenge" id="page-10" data-label="8.1" data-check="Challenge afgerond">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 8.1</span><span class="hole-badge">Challenge</span></div>
+        <h2 class="hole-title">Challenge 3 — Inschattings-challenge</h2>
+        <div class="hole-body">
+          <p>Het is tijd voor een inschattings-challenge. Jullie krijgen zometeen acht vragen waar jullie een inschatting voor moeten maken. Het team dat het meest dichtbij zit krijgt een punt. Het team dat na acht vragen de minste punten heeft, verliest, en zal bij de volgende hole twee drankjes moeten drinken, en krijgt dus ook een slag extra. Succes!</p>
+        </div>
+        <ul class="q-list">
+          <li class="q-item"><details><summary>Hoeveel inwoners telde Kos in 2021?</summary><div class="q-answer">37.089</div></details></li>
+          <li class="q-item"><details><summary>Wat is de oppervlakte van Kos in vierkante kilometers?</summary><div class="q-answer">290 km²</div></details></li>
+          <li class="q-item"><details><summary>Hoeveel toeristen trekt Kos per jaar?</summary><div class="q-answer">1,5 miljoen</div></details></li>
+          <li class="q-item"><details><summary>Hoe hoog is de hoogste berg in Kos in meters?</summary><div class="q-answer">846 meter</div></details></li>
+          <li class="q-item"><details><summary>Hoe lang is het eiland in kilometers?</summary><div class="q-answer">42,1 km</div></details></li>
+          <li class="q-item"><details><summary>Owen kreeg het in Turkije op zijn heupen en was toen ineens in de sportschool te vinden. Tijdens zijn pulldown, hoeveel gewichtblokken (van onbepaald gewicht) kreeg hij met het uitvoeren van deze oefening omhoog?</summary><div class="q-answer">7</div></details></li>
+          <li class="q-item"><details><summary>In 2024 gingen we naar een wedstrijd van Hajduk Split. Hoeveel goals werden er destijds gescoord?</summary><div class="q-answer">3 (bij gelijkspel: specifieke stand 2:1)</div></details></li>
+          <li class="q-item"><details><summary>Op 12 augustus 2023 viel Finn in slaap op het bed van de quizmaster. De in-het-huis-aanwezigen vonden dit een mooi moment om hem in te bouwen met stoelen. Toen Finn wakker werd, hoeveel stoelen stonden er op zijn bed?</summary><div class="q-answer">7</div></details></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 8.2 CAMEL BAR -->
+    <section class="page" data-type="drink" id="page-11" data-label="8.2" data-check="Op! Klaar voor de volgende hole">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 8.2</span><span class="hole-badge">Drankje</span></div>
+        <h2 class="hole-title">Camel Bar <span style="opacity:.7; font-size:.55em; font-weight:600;">(Nederlandse Bar)</span></h2>
+        <div class="hole-body">
+          <p>Niet getreurd, we hoeven niet veel verder te lopen. Hier zit namelijk de Camel Bar, een Hollands feestcafé op Kos. Fantastisch! Helaas is er online weinig informatie en een menukaart beschikbaar, maar deze plek kon niet in de tocht ontbreken. Met een 4,5 ster rating uit 1330 reviews zal het vast wel goed zitten, en omdat het hier volgens de website ook om feesten gaat, zullen ze vast genoeg aanbod hebben. Eenmaal aangekomen zal de quizmaster de kaart bekijken en een keuze maken welk drankje er gedronken zal worden. Dat blijft dus voor iedereen een verrassing!</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 of 2 teamleden (op basis van challenge 3)</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Keuze quizmaster</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">10:00 – 00:00</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOLE 9 -->
+    <section class="page" data-type="drink" id="page-12" data-label="9" data-check="Op! Klaar voor de volgende hole">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 9</span><span class="hole-badge">Drankje</span></div>
+        <h2 class="hole-title">Sitar Cocktail Bar</h2>
+        <div class="hole-body">
+          <p>Vanaf de Camel Bar kan je het bijna ruiken, zo dichtbij is het. Op nog geen honderd meter lopen zit de Sitar Cocktail Bar. Verscholen in een hoekje, maar het pleintje zelf ziet er wel gezellig uit, en die reviews zijn ook prima. Wie ook verscholen waren, waren de stelletjes die in Salou een leuke nacht op het strand probeerden te hebben en Klaas eens van dichterbij probeerde te bekijken. Om deze gebeurtenis te herbeleven, zullen jullie hier een Sex on the Beach drinken.</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 teamlid</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Sex on the Beach</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">19:00 – 04:00</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOLE 10 -->
+    <section class="page" data-type="drink" id="page-13" data-label="10" data-check="Split &amp; drankje op — klaar voor de volgende hole">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 10</span><span class="hole-badge">Drankje + Challenge</span></div>
+        <h2 class="hole-title">Blues Brothers</h2>
+        <div class="hole-body">
+          <p>Onderweg naar huis pakken we ook de Blues Brothers mee. De quizmaster heeft hier een Ierse klassieker op de kaart zien staan, een Guinness. Deze zal hier gedronken worden. Maar jullie weten het, een Guinness kan niet genuttigd worden zonder eerst die G gesplit te hebben. Ieder team schuift zijn beste splitter naar voren. Deze zal eerst proberen om de G te splitten. Lukt dit, dan krijgen zij -3 slagen op hun totaal aantal. Daarna zal de rest van het glas opgedronken worden, en wordt dit beschouwd als een nieuw drankje. Dit betekent dat beide teams bij deze hole minimaal 2 slagen bij hun totaal aantal krijgen. Split ze!</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 teamlid — de beste "splitter"</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Guinness</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">14:00 – 01:00</span></div>
+          <div class="info-row"><span class="k">Bij succes</span><span class="v">-3 slagen op het teamtotaal</span></div>
+          <div class="info-row"><span class="k">Sowieso</span><span class="v">+2 slagen minimaal per team (split + de rest van het glas)</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOLE 11 -->
+    <section class="page" data-type="choice" id="page-14" data-label="11" data-check="Keuze gemaakt">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 11</span><span class="hole-badge">Kos's Keuze</span></div>
+        <h2 class="hole-title">XL Cafe &amp; Cocktail Bar</h2>
+        <div class="hole-body">
+          <p>Daarna lopen we door naar XL Cafe &amp; Cocktail Bar. Cocktails voor €6?!? Dat is correct. Hier hebben ze enkele cocktails voor €6 per stuk. Die kunnen we op de weg naar huis niet laten liggen. Iedereen zal er nu wel lekker in zitten. Ieder team mag daarom een cocktail kiezen die ze willen drinken. Dit hoeven niet dezelfde te zijn.</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 teamlid</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Keuze per team, €6</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">09:00 – 01:00</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOLE 12 -->
+    <section class="page" data-type="drink" id="page-15" data-label="12" data-check="Op! Klaar voor de volgende hole">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 12</span><span class="hole-badge">Drankje</span></div>
+        <h2 class="hole-title">Tauraki Sports Pub</h2>
+        <div class="hole-body">
+          <p>De laatste stop is de Tauraki Sports Pub. Bij een potje voetbal kijken hoort natuurlijk een lekker biertje. Tenminste, dat zou je normaal gesproken denken. Maar dit is de pubgolf in Kos, en daar is niets zoals het lijkt. Online zijn foto's van een heerlijke Aperol Spritz te zien. Voor sommigen een drankje waar ze naar uit zullen kijken, anderen vinden het maar niks. Dat maakt allemaal niks uit, hij zal toch op moeten, drink smakelijk!</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 teamlid</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Aperol Spritz</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">10:00 – 02:00</span></div>
+          <div class="info-row"><span class="k">Back-up</span><span class="v">Een andere lekkere mix die op de kaart staat</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOLE 13 -->
+    <section class="page" data-type="drink" id="page-16" data-label="13" data-check="Op! Ronde afgerond">
+      <div class="hole-inner">
+        <div class="hole-head"><span class="hole-num">Hole 13</span><span class="hole-badge">Drankje</span></div>
+        <h2 class="hole-title">La Strega — Finale</h2>
+        <div class="hole-body">
+          <p>Mochten jullie nog niet genoeg hebben gehad, dan kunnen we hem ook afsluiten waar het begonnen is, mits dat is bevallen (en als ze nog open zijn). Bij La Strega hebben ze een Ouzo Lemon op de kaart staan. Of dit een groot of klein glas is weet de quizmaster niet. Dat maakt ook niet uit, hij moet hoe dan ook op! Die zal wel ff binnenklappen!</p>
+        </div>
+        <div class="info-panel">
+          <div class="info-row"><span class="k">Wie</span><span class="v">1 teamlid</span></div>
+          <div class="info-row"><span class="k">Drankje</span><span class="v">Ouzo Lemon</span></div>
+          <div class="info-row"><span class="k">Tijden</span><span class="v">10:00 – 02:00</span></div>
+          <div class="info-row"><span class="k">Back-up</span><span class="v">Alfa</span></div>
+        </div>
+        <p class="editable-note">🏆 Einde van de ronde. Tel de slagen: wie heeft de minste?</p>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div id="pagenav">
+  <div class="gate-row hidden" id="gate-row">
+    <label class="gate-check">
+      <input type="checkbox" id="gate-input">
+      <span class="gate-box"><svg viewBox="0 0 24 24" fill="none" stroke="#0A2338" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+      <span id="gate-label">Klaar voor de volgende hole</span>
+    </label>
+  </div>
+  <div class="nav-buttons">
+    <button class="nav-btn" id="btn-prev">← Vorige</button>
+    <span id="page-counter">1 / 17</span>
+    <button class="nav-btn" id="btn-next">Volgende →</button>
+  </div>
+</div>
+
+<script>
+  const slides = document.getElementById('slides');
+  const pages = Array.from(document.querySelectorAll('.page'));
+  const mapTrack = document.getElementById('map-track');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+  const counter = document.getElementById('page-counter');
+  const gateRow = document.getElementById('gate-row');
+  const gateInput = document.getElementById('gate-input');
+  const gateLabel = document.getElementById('gate-label');
+  const startBtn = document.getElementById('start-btn');
+
+  pages.forEach((p, i) => {
+    const m = document.createElement('div');
+    m.className = 'map-marker' + (i === 0 ? ' start' : '');
+    m.textContent = p.dataset.label;
+    m.dataset.index = i;
+    m.addEventListener('click', () => attemptGoTo(i));
+    mapTrack.appendChild(m);
+  });
+  const markers = Array.from(document.querySelectorAll('.map-marker'));
+
+  const checked = pages.map(() => false);
+  let current = 0;
+  let furthest = 0;
+
+  function requiresCheck(i){ return !!pages[i].dataset.check; }
+  function canAdvance(){ return !requiresCheck(current) || checked[current]; }
+
+  function render(){
+    slides.style.transform = `translateX(-${current * 100}vw)`;
+    markers.forEach((m, i) => {
+      m.classList.toggle('active', i === current);
+      m.classList.toggle('locked', i > furthest);
+    });
+    const activeMarker = markers[current];
+    if (activeMarker) activeMarker.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+    counter.textContent = (current + 1) + ' / ' + pages.length;
+    btnPrev.disabled = current === 0;
+    btnNext.disabled = !canAdvance();
+
+    if (requiresCheck(current)){
+      gateRow.classList.remove('hidden');
+      gateLabel.textContent = pages[current].dataset.check;
+      gateInput.checked = checked[current];
+    } else {
+      gateRow.classList.add('hidden');
+    }
+  }
+
+  function next(){
+    if (!canAdvance()){
+      document.getElementById('pagenav').classList.add('shake');
+      gateRow.querySelector('.gate-check').classList.add('shake');
+      setTimeout(() => {
+        document.getElementById('pagenav').classList.remove('shake');
+        gateRow.querySelector('.gate-check').classList.remove('shake');
+      }, 400);
+      return;
+    }
+    if (current < pages.length - 1){
+      current++;
+      furthest = Math.max(furthest, current);
+      render();
+    }
+  }
+  function prev(){
+    if (current > 0){ current--; render(); }
+  }
+  function attemptGoTo(i){
+    if (i <= furthest){ current = i; render(); }
+    else {
+      markers[i].classList.add('shake');
+      setTimeout(() => markers[i].classList.remove('shake'), 400);
+    }
+  }
+
+  gateInput.addEventListener('change', () => {
+    checked[current] = gateInput.checked;
+    render();
+  });
+
+  btnPrev.addEventListener('click', prev);
+  btnNext.addEventListener('click', next);
+  startBtn.addEventListener('click', next);
+
+  window.addEventListener('keydown', (e) => {
+    if (['ArrowDown','ArrowRight','PageDown'].includes(e.key)){ e.preventDefault(); next(); }
+    if (['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){ e.preventDefault(); prev(); }
+  });
+
+  // swipe (horizontal only, ignores vertical scroll inside content like Q&A lists)
+  let touchStartX = 0, touchStartY = 0;
+  document.getElementById('viewport').addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, {passive:true});
+  document.getElementById('viewport').addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5){
+      if (dx < 0) next(); else prev();
+    }
+  }, {passive:true});
+
+  render();
+</script>
+
+</body>
+</html>
